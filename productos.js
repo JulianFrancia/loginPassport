@@ -1,21 +1,10 @@
-const { isConstructorDeclaration } = require('typescript');
 const productosModel = require('./models/producto-model');
-const faker = require('faker');
 
 
 class Productos {
 
     constructor(listaProductos) {
         this.listaProductos = listaProductos;
-    }
-
-    devolverMock(cant = 10) {
-        if(cant == 0) return 'no hay productos'
-        const lista = [];
-        for(let i = 0; cant > i; i++) {
-            lista.push({title: faker.commerce.product(), price:faker.datatype.number(), thumbnail: faker.image.imageUrl()})
-        }
-        return lista;
     }
 
     devolverLista() {

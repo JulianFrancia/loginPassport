@@ -9,14 +9,14 @@
 </head>
 <body>
     <h1>Login</h1>
-    <form id="login_form">
-        <label for="user"></label>
-        <input type="text" name="user" id="user_login">
+    <form action="/login" method="POST">
+        <label for="username"></label>
+        <input type="text" name="username" id="username">
     
         <label for="password"></label>
-        <input type="password" name="password" id="password_login">
+        <input type="password" name="password" id="password">
     
-        <input type="button" value="Ingresar" onclick="login()">
+        <input type="submit" value="Ingresar">
     </form>
     <a href="http://localhost:8080/register">Crear Cuenta</a>
 </body>

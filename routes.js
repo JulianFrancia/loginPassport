@@ -1,7 +1,7 @@
 function getLogin(req,res) {
     if(req.isAuthenticated()) {
         const user = req.username;
-        res.json(user);
+        res.redirect('/productos.html')
     } else {
         res.redirect('/')
     }
@@ -21,12 +21,16 @@ function postSignUp(req,res) {
 }
 
 function getFailSignUp(req,res) {
-    console.log(req.session.passport)
     res.redirect('/error-register.html')
 }
 
 function getFailLogin(req,res) {
     res.redirect('/error-login.html')
+}
+
+function getLogout(req,res) {
+    req.logout();
+    res.redirect('/')
 }
 
 module.exports = {
@@ -35,5 +39,6 @@ module.exports = {
     getSignUp,
     postSignUp,
     getFailSignUp,
-    getFailLogin
+    getFailLogin,
+    getLogout
 }

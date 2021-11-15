@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="index.js"></script>
+    <title>Document</title>
+</head>
+<body>
+    <div style="display: flex; flex-direction: column; width: 50%;">
+        <form id='form' style="display: flex; flex-direction: column;">
+            <h3>Agregar producto</h3>
+            <label for="title">Titulo</label>
+            <input id="title" name="title" type="text">
+    
+            <label for="price">Precio</label>
+            <input name="price" id="price" type="text">
+    
+            <label for="thumbnail">URL imagen</label>
+            <input name="thumbnail" id="thumbnail" type="text">
+
+            <input style="width: 50%; margin-top: 5px; cursor: pointer;" type="button" value="Agregar" onclick="enviarProducto()">
+        </form>
+        <div id="productos"></div>
+        <div id='mensajesBox'>
+            <h1>Mensajes</h1>
+            <form id="formMensaje">
+                <label for="mail"></label>
+                <input id="mail" name="mail" type="email">
+                <br>
+                <div id="mensajes"></div>
+                <br>
+                <label for="mensaje">mensaje</label>
+                <input type="text" name="mensaje" id="mensaje">
+                <input type="button" value="Enviar" onclick="enviarMensaje()">
+            </form>
+        </div>
+    </div>
+</body>
+</html>

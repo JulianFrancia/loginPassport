@@ -9,14 +9,14 @@
 </head>
 <body>
     <h1>Registro</h1>
-    <form id="register_form">
+    <form action="/register" method="POST">
         <label for="user"></label>
-        <input type="text" name="user" id="user_register">
+        <input type="text" name="username" id="user_register">
     
         <label for="password"></label>
         <input type="text" name="password" id="password_register">
     
-        <input type="button" value="Registrar" onclick="register()">
+        <input type="submit" value="Registrar">
     </form>
 </body>
 </html>
