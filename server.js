@@ -1,7 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
+const FacebookStrategy = require('passport-facebook').Strategy;
 const mongoose = require('mongoose');
 const Productos = require('./productos');
 const {User} = require('./userModel');
@@ -17,7 +17,16 @@ const {normalize, schema} = require('normalizr');
 const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
-const PORT = 8080;
+const PORT = 8443;
+
+//Para convertir en HTTPS
+const https = require('https');
+const fs = require('fs'); 
+const path = require('path'); 
+const httpsOptions = {
+    key: fs.readFileSync('./sslcert/cert.key'),
+    cert: fs.readFileSync('./sslcert/cert.pem')
+}
 
 app.use(express.static('public'));
 app.use(express.json());
@@ -36,9 +45,10 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-const server = http.listen(PORT, () => {
-    console.log(`server escuchando en ${PORT}`)
-});
+const server = https.createServer(httpsOptions, app)
+    .listen(PORT, () => {
+        console.log('Server corriendo en ' + PORT)
+    })
 
 server.on('error', error => console.log(error));
 
@@ -79,46 +89,27 @@ io.on('connection', (socket) => {
     })
 })
 
-passport.use('signup', new LocalStrategy({
-    passReqToCallback: true
-},
-function(req, username, password, done) {
-    User.findOne({'username': username}, async (err, user) => {
+passport.use(new FacebookStrategy({
+    clientID: '4465156603594863',
+    clientSecret: 'cffae0dcac4717ee6b8902e45a00c164',
+    callbackURL: `https://localhost:${PORT}/auth/facebook/login`,
+    profileFields: ['id', 'displayName']
+  },
+  function(accessToken, refreshToken, profile, done) {
+    User.findOne({'username': profile.displayName}, async (err, user) => {
         if(err) {
             console.log(err)
             return done(err)
         }
         if(user) {
-            return done(null, false, console.log('ya existe el usuario'))
+            return done(null, user)
         } else {
-            const userSaveModel = new User({username: username, password: createHash(password)});
+            const userSaveModel = new User({username: profile.displayName, password: createHash(accessToken)});
             await userSaveModel.save();
-            return done(null,username);
+            return done(null,profile.displayName);
         }
     })
-}
-));
-
-passport.use('login', new LocalStrategy({
-    passReqToCallback: true,
-    },
-    function(req, username, password, done) {
-        User.findOne({'username': username}, (err, user) => {
-            if(err) {
-                console.log(err)
-                return done(err)
-            }
-            if(!user) {
-                return done(user)
-            }
-            if(validPassword(password, user.password)) {
-                return done(null,username)
-            } else {
-                return done(null, false, console.log('contrasenia erronea'))
-            }
-        })
-    }
-    ));
+  }));
 
 createHash = (password) => {
     return bCrypt.hashSync(password, bCrypt.genSaltSync(10), null)
@@ -129,7 +120,7 @@ validPassword = (password, encriptedPass) => {
 }
 
 passport.serializeUser((user, done) => {
-    User.findOne({'username': user},(err,userFound) => {
+    User.findOne({'username': user.username},(err,userFound) => {
         done(null, userFound._id);
     })
     
@@ -140,6 +131,14 @@ passport.deserializeUser((id, done)=>{
         done(null, user);
     })
 });
+
+app.get('/auth/facebook', passport.authenticate('facebook'));
+app.get('/auth/facebook/login',
+    passport.authenticate('facebook', { failureRedirect: '/error-login.html' }),
+    function(req, res) {
+        res.redirect('/login');
+    }
+);
 
 app.get('/login', getLogin);
 app.post('/login',passport.authenticate('login', {failureRedirect: '/failLogin'}), postLogin);
