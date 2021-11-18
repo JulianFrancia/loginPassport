@@ -13,6 +13,7 @@ let listaProductos = []
 const productos = new Productos(listaProductos);
 let mensajes = [];
 const {normalize, schema} = require('normalizr');
+const { fork } = require('child_process');
 
 const app = express();
 const http = require('http').Server(app);
@@ -27,6 +28,8 @@ const httpsOptions = {
     key: fs.readFileSync('./sslcert/cert.key'),
     cert: fs.readFileSync('./sslcert/cert.pem')
 }
+
+let userLogged;
 
 app.use(express.static('public'));
 app.use(express.json());
@@ -89,19 +92,25 @@ io.on('connection', (socket) => {
     })
 })
 
+process.on('exit',(code)=>{
+        console.log('Saliendo con error:', code);
+});
+
 passport.use(new FacebookStrategy({
-    clientID: '4465156603594863',
-    clientSecret: 'cffae0dcac4717ee6b8902e45a00c164',
+    clientID: process.argv.find(elem => elem.includes('facebookId')) ? process.argv.find(elem => elem.includes('facebookId')) : '4465156603594863',
+    clientSecret: process.argv.find(elem => elem.includes('facebookSecret')) ? process.argv.find(elem => elem.includes('facebookSecret')) : 'cffae0dcac4717ee6b8902e45a00c164',
     callbackURL: `https://localhost:${PORT}/auth/facebook/login`,
-    profileFields: ['id', 'displayName']
+    profileFields: ['id', 'displayName', 'email', 'picture']
   },
   function(accessToken, refreshToken, profile, done) {
+      console.log(profile)
     User.findOne({'username': profile.displayName}, async (err, user) => {
         if(err) {
             console.log(err)
             return done(err)
         }
         if(user) {
+            userLogged = profile;
             return done(null, user)
         } else {
             const userSaveModel = new User({username: profile.displayName, password: createHash(accessToken)});
@@ -132,7 +141,9 @@ passport.deserializeUser((id, done)=>{
     })
 });
 
-app.get('/auth/facebook', passport.authenticate('facebook'));
+app.get('/auth/facebook', passport.authenticate('facebook'),(req,res) => {
+    res.send(userLogged)
+});
 app.get('/auth/facebook/login',
     passport.authenticate('facebook', { failureRedirect: '/error-login.html' }),
     function(req, res) {
@@ -147,3 +158,20 @@ app.get('/register', getSignUp);
 app.post('/register', passport.authenticate('signup', {failureRedirect: '/failsignup'}), postSignUp);
 app.get('/failsignup', getFailSignUp)
 app.get('/logout', getLogout)
+app.get('/info', (req,res) => {
+    const argObj = {
+        argumentos: process.argv,
+        plataforma: process.platform,
+        nodeVersion: process.version,
+        usoMemoria: process.memoryUsage(),
+        pathEjecutcion: process.execPath,
+        processID: process.pid,
+        carpetaCorriente: process.cwd()
+    }
+    res.send(JSON.stringify(argObj));
+});
+app.get('/randoms', (req,res) => {
+    const computo = fork('./calculoRandoms.js', [req.query.cant ? req.query.cant : '100000000']);
+    computo.send('start');
+    computo.on('message', obj => res.end(obj))
+})
