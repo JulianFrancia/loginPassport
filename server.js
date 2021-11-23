@@ -14,6 +14,8 @@ const productos = new Productos(listaProductos);
 let mensajes = [];
 const {normalize, schema} = require('normalizr');
 const { fork } = require('child_process');
+const cluster = require('cluster');
+const numCPUs = require('os').cpus().length;
 
 const app = express();
 const http = require('http').Server(app);
@@ -48,12 +50,16 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+
 const server = https.createServer(httpsOptions, app)
     .listen(PORT, () => {
         console.log('Server corriendo en ' + PORT)
     })
-
-server.on('error', error => console.log(error));
+if(process.argv.find(elem => elem.includes('CLUSTER'))) {
+    server.on('error', error => console.log(error));
+} else {
+    server.on('error', error => console.log(error));
+}
 
 function connectDB() {
     const URI = 'mongodb://localhost:27017/ecommerce';
@@ -166,7 +172,8 @@ app.get('/info', (req,res) => {
         usoMemoria: process.memoryUsage(),
         pathEjecutcion: process.execPath,
         processID: process.pid,
-        carpetaCorriente: process.cwd()
+        carpetaCorriente: process.cwd(),
+        nroCPUS: numCPUs
     }
     res.send(JSON.stringify(argObj));
 });
