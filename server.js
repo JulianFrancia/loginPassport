@@ -20,7 +20,17 @@ const numCPUs = require('os').cpus().length;
 const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
-const PORT = 8443;
+
+function getPort() {
+    if(process.argv.find(elem => elem.includes('FORK'))) {
+        return 8081
+    } else if(process.argv.find(elem => elem.includes('CLUSTER'))) {
+        return 8082
+    } else {
+        return 8443
+    }
+}
+const PORT = getPort();
 
 //Para convertir en HTTPS
 const https = require('https');
