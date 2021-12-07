@@ -1,3 +1,4 @@
+const compression = require('compression');
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
@@ -16,10 +17,27 @@ const {normalize, schema} = require('normalizr');
 const { fork } = require('child_process');
 const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
+const log4js = require('log4js');
 
 const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
+
+log4js.configure({
+    appenders: {
+        miLoggerConsole: {type: 'console'},
+        warnLog: {type: 'file', filename: 'warn.log'},
+        errorLog: {type: 'file', filename: 'error.log'}
+    },
+    categories: {
+        default: {appenders: ['miLoggerConsole'], level: 'trace'},
+        console: {appenders: ['miLoggerConsole'], level: 'info'},
+        warnLog: {appenders: ['warnLog'], level: 'warn'},
+        errorLog: {appenders: ['errorLog'], level: 'error'}
+    }
+});
+
+const logger = log4js.getLogger('console')
 
 function getPort() {
     if(process.argv.find(elem => elem.includes('FORK'))) {
@@ -46,6 +64,7 @@ let userLogged;
 app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
+app.use(compression());
 
 app.use(session({
     secret:'secret',
@@ -63,12 +82,12 @@ app.use(passport.session());
 
 const server = https.createServer(httpsOptions, app)
     .listen(PORT, () => {
-        console.log('Server corriendo en ' + PORT)
+        logger.info('Server corriendo en ' + PORT);
     })
 if(process.argv.find(elem => elem.includes('CLUSTER'))) {
-    server.on('error', error => console.log(error));
+    server.on('error', error => logger.error(error));
 } else {
-    server.on('error', error => console.log(error));
+    server.on('error', error => logger.error(error));
 }
 
 function connectDB() {
@@ -77,7 +96,7 @@ function connectDB() {
         useNewUrlParser: true,
         useUnifiedTopology: true
     })
-    console.log('DB conectada')
+    logger.warn('DB conectada');
 }
 
 connectDB();
@@ -104,12 +123,12 @@ io.on('connection', (socket) => {
         io.sockets.emit('mostrarMensajes', mensajes);
     });
     socket.on('login', data => {
-        console.log(data)
+        logger.info(data)
     })
 })
 
 process.on('exit',(code)=>{
-        console.log('Saliendo con error:', code);
+    logger.warn('Saliendo con error:', code);
 });
 
 passport.use(new FacebookStrategy({
@@ -119,10 +138,10 @@ passport.use(new FacebookStrategy({
     profileFields: ['id', 'displayName', 'email', 'picture']
   },
   function(accessToken, refreshToken, profile, done) {
-      console.log(profile)
+      logger.info(profile);
     User.findOne({'username': profile.displayName}, async (err, user) => {
         if(err) {
-            console.log(err)
+            logger.error(err);
             return done(err)
         }
         if(user) {
